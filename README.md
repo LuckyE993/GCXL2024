@@ -14,4 +14,10 @@ The training config file is in `src/train_model/yolov5/train_config.py`.Datasets
 ### edge detection
 
 ## Chassis Part
+### Communication Protocol
+![Current Protocols](<docs/pics/Communication Protocols now.png>)
+### Progress
+Implement the PID control for the speed loop.
+
+Currently, communication with the upper computer is established via UART6, and the upper computer can control the chassis speed by sending commands
 ## Robotic Arm Part
