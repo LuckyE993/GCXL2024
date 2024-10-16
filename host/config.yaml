@@ -1,0 +1,19 @@
+serial:
+  port: "/dev/ttyUSB0"
+  baudrate: 115200
+  stopbits: 1
+  databits: 8
+  parity: "none"
+
+frame:
+  head: 0xFF
+  mode: 0x00
+  byte1: 0x43
+  byte2: 0x56
+  byte3: 0x00
+  byte4: 0x23
+  byte5: 0x00
+  byte6: 0x00
+  byte7: 0x00
+  tail: 0xFE
+
