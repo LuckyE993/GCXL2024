@@ -72,6 +72,21 @@ int main()
     camera.startCapture(); // 开始捕获视频
 
     cout << "Init Success! " << endl;
+while (true)
+{
+    Mat frame = camera.getFrame(); // 获取当前帧
+    if (!frame.empty())
+    {
+        // 在这里对帧进行处理或显示
+        imshow("Frame", frame);
+    }
+
+    char key = waitKey(1);
+    if (key == 'q')
+    {
+        break;
+    }
+}	
 
     while (true)
     {

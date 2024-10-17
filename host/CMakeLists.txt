@@ -11,8 +11,7 @@ include_directories(
 add_executable(host
         src/usart.cpp
         main.cpp
-        src/QRcode.cpp
-        inc/QRcode.h
+
         src/Camera.cpp
         inc/Camera.h
 
