@@ -92,15 +92,20 @@ private:
     ReceiveCallback receiveCallback;
 };
 
-class ParseCommand
+class Command
 {
     public:
-    ParseCommand();
-    ~ParseCommand();
+    Command();
+    ~Command();
 
     Frame initSendFrame(const YAML::Node& config);
     Frame initReceiveFrame(const YAML::Node& config);
 
+    bool generateQRcodeFrame(Frame &frame);
+    bool generateMaterialFrame(Frame &frame);
+    bool generateDetectFrame(Frame &frame);
+
+    int mode;
 };
 
 

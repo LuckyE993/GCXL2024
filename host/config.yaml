@@ -17,3 +17,5 @@ frame:
   byte7: 0x00
   tail: 0xFE
 
+cam_QRCode: 0
+cam_Detect: 2

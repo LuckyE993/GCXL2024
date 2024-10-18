@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <opencv2/opencv.hpp>
 #include <Camera.h>
+#include <QRcode.h>
 
 using namespace cv;
 using namespace std;
@@ -13,6 +14,14 @@ int num;
 int receive_num;
 
 const string config_dir = "../config.yaml";
+
+YAML::Node config = YAML::LoadFile(config_dir);
+Camera camera(config["cam_QRCode"].as<int>()); // 初始化摄像头
+WzSerialportPlus serialport;
+QRcode qrCodeScanner;
+
+Frame sendFrame = serialport.initSendFrame(config);
+Frame receiveFrame = serialport.initReceiveFrame(config);
 
 void sendFramePeriodically(WzSerialportPlus &serialport, const Frame &sendFrame, int interval_ms)
 {
@@ -28,11 +37,12 @@ void sendFramePeriodically(WzSerialportPlus &serialport, const Frame &sendFrame,
 
 int main()
 {
-    YAML::Node config = YAML::LoadFile(config_dir);
+    /*--------------------------------------------------  Camera  -------------------------------------------------*/
 
-    WzSerialportPlus serialport;
-    Frame sendFrame = serialport.initSendFrame(config);
-    Frame receiveFrame = serialport.initReceiveFrame(config);
+    camera.startCapture(); // 开始捕获视频
+
+    /*--------------------------------------------------  Camera  -------------------------------------------------*/
+
 
     serialport.setReceiveCalback([&](char *data, int length)
     {
@@ -43,8 +53,7 @@ int main()
             Frame *receivedFrame = (Frame *) data;
             if (receivedFrame->head == receiveFrame.head && receivedFrame->tail == receiveFrame.tail)
             {
-                receive_num++;
-                std::clog << receive_num << "  Received frame matches success;" << std::endl;
+                std::clog << "  Received frame matches success;" << std::endl;
                 //TODO 解析数据
 
 
@@ -58,35 +67,17 @@ int main()
             }
         } else
         {
-            std::cerr << "Received frame matches failed. Length err len: " << length << "Frame len: " << sizeof(Frame)
+            std::cerr << "Received frame matches failed. Length err len: " << length << "Frame len: " << sizeof(
+                        Frame)
                     << std::endl;
         }
-        // serialport.send((char *) &sendFrame, sizeof(sendFrame));
     });
 
     serialport.initSerialFromConfig(serialport, config_dir);
 
-    // std::thread sendThread(sendFramePeriodically, std::ref(serialport), std::ref(sendFrame), 500);
-
-    Camera camera(0); // 初始化摄像头
-    camera.startCapture(); // 开始捕获视频
+   // std::thread sendThread(sendFramePeriodically, std::ref(serialport), std::ref(sendFrame), 500);
 
     cout << "Init Success! " << endl;
-while (true)
-{
-    Mat frame = camera.getFrame(); // 获取当前帧
-    if (!frame.empty())
-    {
-        // 在这里对帧进行处理或显示
-        imshow("Frame", frame);
-    }
-
-    char key = waitKey(1);
-    if (key == 'q')
-    {
-        break;
-    }
-}	
 
     while (true)
     {

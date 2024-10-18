@@ -121,7 +121,7 @@ void Camera::captureVideo()
         if (!frame.empty())
         {
             globalFrame = frame.clone(); // 将最新帧赋值给全局变量
-
+            cout << frame_count++ << endl;
         }
     }
     cv::destroyAllWindows();
