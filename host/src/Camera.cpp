@@ -8,7 +8,7 @@
 #include <Camera.h>
 using namespace cv;
 using namespace std;
-int frame_count = 0;
+
 
 // 摄像头读取函数
 void captureVideo(int cameraID)
@@ -121,7 +121,6 @@ void Camera::captureVideo()
         if (!frame.empty())
         {
             globalFrame = frame.clone(); // 将最新帧赋值给全局变量
-            cout << frame_count++ << endl;
         }
     }
     cv::destroyAllWindows();

@@ -3,7 +3,7 @@
 //
 #include <QRcode.h>
 #include <iostream>
-
+extern Camera camera;
 // 构造函数，初始化ZBar扫描器
 QRcode::QRcode() {
     scanner.set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);

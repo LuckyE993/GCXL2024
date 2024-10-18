@@ -22,6 +22,9 @@ add_executable(host
         src/Camera.cpp
         inc/QRcode.h
         src/QRcode.cpp
+        inc/Command.h
+        src/Command.cpp
+
         main.cpp
 )
 

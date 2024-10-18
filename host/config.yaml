@@ -8,14 +8,22 @@ serial:
 frame:
   head: 0xFF
   mode: 0x00
-  byte1: 0x43
-  byte2: 0x56
+  byte1: 0x00
+  byte2: 0x00
   byte3: 0x00
-  byte4: 0x23
+  byte4: 0x00
   byte5: 0x00
   byte6: 0x00
   byte7: 0x00
   tail: 0xFE
 
+mode:
+  QRmode: 0x01
+  Colormode: 0x02
+  Circlemode: 0x03
+
 cam_QRCode: 0
 cam_Detect: 2
+
+debug_flag: 1
+send_latecy_ms: 50

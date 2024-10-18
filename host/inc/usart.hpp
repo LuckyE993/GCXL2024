@@ -73,8 +73,9 @@ public:
 
     bool initSerialFromConfig(WzSerialportPlus &serialport, const std::string &configFilePath);
 
-    Frame initSendFrame(const YAML::Node& config);
-    Frame initReceiveFrame(const YAML::Node& config);
+    Frame initSendFrame(const YAML::Node &config);
+
+    Frame initReceiveFrame(const YAML::Node &config);
 
 protected:
     virtual void onReceive(char *data, int length);
@@ -90,22 +91,6 @@ private:
     int receiveMaxlength;
     int receiveTimeout; /* unit: ms */
     ReceiveCallback receiveCallback;
-};
-
-class Command
-{
-    public:
-    Command();
-    ~Command();
-
-    Frame initSendFrame(const YAML::Node& config);
-    Frame initReceiveFrame(const YAML::Node& config);
-
-    bool generateQRcodeFrame(Frame &frame);
-    bool generateMaterialFrame(Frame &frame);
-    bool generateDetectFrame(Frame &frame);
-
-    int mode;
 };
 
 
