@@ -9,6 +9,8 @@
 #include <QRcode.h>
 #include "Command.h"
 #include <condition_variable>
+#include <Detector.h>
+
 
 using namespace cv;
 using namespace std;
@@ -17,10 +19,12 @@ using namespace std;
 const string config_dir = "../config.yaml";
 
 YAML::Node config = YAML::LoadFile(config_dir);
-Camera camera(config["cam_QRCode"].as<int>()); // 初始化摄像头
+Camera qr_camera(config["cam_QRCode"].as<int>()); // 初始化摄像头
+Camera detect_camera(config["cam_Det"].as<int>()); // 初始化摄像头
 WzSerialportPlus serialport;
 QRcode qrCodeScanner;
 Command command;
+Detector detector;
 thread serial_thread;
 volatile bool serialThreadRunning = true;
 std::mutex mtx;
@@ -34,9 +38,11 @@ int sendLatecy = config["send_latecy_ms"].as<int>();
 
 
 // 发送帧的函数
-void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms) {
+void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
+{
     std::unique_lock<std::mutex> lock(mtx);
-    while (serialThreadRunning) {
+    while (serialThreadRunning)
+    {
         condition.wait_for(lock, std::chrono::milliseconds(interval_ms));
 
         if (!serialThreadRunning) break;
@@ -52,8 +58,6 @@ int main()
 {
     /*--------------------------------------------------  Camera  -------------------------------------------------*/
 
-
-
     /*--------------------------------------------------  Camera  -------------------------------------------------*/
 
 
@@ -67,24 +71,25 @@ int main()
             if (receivedFrame->head == receiveFrame.head && receivedFrame->tail == receiveFrame.tail)
             {
                 clog << "  Received frame matches success;" << endl;
-                //TODO 解析数据
                 switch (receivedFrame->mode)
                 {
                     case 0:
                     {
                         cout << "Received frame mode: 0 Stop send." << endl;
-                        if (serial_thread.joinable()) {
+                        if (serial_thread.joinable())
+                        {
                             std::cout << "Thread has started, attempting to stop it.\n";
 
                             // 停止线程
                             {
                                 std::lock_guard<std::mutex> lock(mtx);
-                                serialThreadRunning = false;  // 设置标志位为false
+                                serialThreadRunning = false; // 设置标志位为false
                             }
-                            condition.notify_all();  // 唤醒阻塞的线程
-                            serial_thread.join();  // 等待线程结束
+                            condition.notify_all(); // 唤醒阻塞的线程
+                            serial_thread.join(); // 等待线程结束
                             std::cout << "Thread has been stopped.\n";
-                        } else {
+                        } else
+                        {
                             std::cout << "The thread has not started.\n";
                         }
                         break;
@@ -93,11 +98,12 @@ int main()
                         //任务码如果没扫到仍然不能通过00进行暂停，原因是主进程卡在while循环。
                     {
                         cout << "Received frame mode: 1 QRCode" << endl;
-                        camera.startCapture(); // 开始捕获视频
+                        qr_camera.startCapture(); // 开始捕获视频
                         this_thread::sleep_for(std::chrono::milliseconds(150));
+
                         while (true)
                         {
-                            Mat frame = camera.getFrame(); // 获取当前帧
+                            Mat frame = qr_camera.getFrame(); // 获取当前帧
 
                             // 检查是否成功获取帧
                             if (frame.empty())
@@ -124,15 +130,16 @@ int main()
                                 break;
                             }
                         }
-
+                        qr_camera.stopCapture();
                         // 启动线程前，确保旧线程已停止
-                        if (serial_thread.joinable()) {
+                        if (serial_thread.joinable())
+                        {
                             {
                                 std::lock_guard<std::mutex> lock(mtx);
                                 serialThreadRunning = false;
                             }
-                            condition.notify_all();  // 唤醒阻塞的线程
-                            serial_thread.join();  // 等待线程结束
+                            condition.notify_all(); // 唤醒阻塞的线程
+                            serial_thread.join(); // 等待线程结束
                         }
 
                         // 重置状态并启动新线程
@@ -141,15 +148,21 @@ int main()
                             serialThreadRunning = true;
                         }
                         serial_thread = std::thread(sendFramePeriodically, ref(serialport), sendLatecy);
+
+
                         break;
                     }
                     case 2:
                         //TODO 物料检测
                         cout << "Received frame mode: 2" << endl;
+
+
                         break;
                     case 3:
                         //TODO 地标圆心检测
                         cout << "Received frame mode: 3" << endl;
+
+
                         break;
                 }
 

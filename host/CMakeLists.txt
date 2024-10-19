@@ -24,8 +24,10 @@ add_executable(host
         src/QRcode.cpp
         inc/Command.h
         src/Command.cpp
-
+        inc/Detector.h
+        src/Detector.cpp
         main.cpp
+
 )
 
 # 设置头文件目录
