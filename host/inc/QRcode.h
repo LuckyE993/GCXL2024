@@ -7,7 +7,7 @@
 #include <opencv2/opencv.hpp>
 #include <zbar.h>
 #include <string>
-#include <Camera.h>
+#include <yaml-cpp/yaml.h>
 
 /*
 *    // 循环读取视频帧
@@ -47,6 +47,7 @@ public:
     QRcode(); // 构造函数
     bool processQRCode(const cv::Mat &frame); // 处理二维码图像并解析
     const std::array<uint8_t, 6> &getBytes() const; // 获取6个byte数据
+
 
 private:
     zbar::ImageScanner scanner; // ZBar扫描器
