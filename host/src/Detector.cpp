@@ -64,6 +64,7 @@ cv::Scalar getColorThreshold(const YAML::Node &thresholds, const std::string &co
 
 Detector::Detector()
 {
+
 }
 
 Detector::~Detector()
@@ -77,112 +78,101 @@ void Detector::load_config(const std::string &config_file)
 
 void Detector::Material_detect(const Mat &img, int color, const YAML::Node &config)
 {
-    YAML::Node Material_Thresholds = config["Materail_Thresholds"];
-
-    int min_contour = config["min_contour"].as<int>();
-    cv::Scalar lbc = Material_Thresholds["lower_blue_contour"].as<cv::Scalar>();
-    cv::Scalar ubc = Material_Thresholds["upper_blue_contour"].as<cv::Scalar>();
-    cv::Scalar lgc = Material_Thresholds["lower_green_contour"].as<cv::Scalar>();
-    cv::Scalar ugc = Material_Thresholds["upper_green_contour"].as<cv::Scalar>();
-    cv::Scalar lrc = Material_Thresholds["lower_red_contour"].as<cv::Scalar>();
-    cv::Scalar urc = Material_Thresholds["upper_red_contour"].as<cv::Scalar>();
-
-    cv::Mat hsv;
-    cv::cvtColor(img, hsv, cv::COLOR_BGR2HSV);
-
-    cv::Mat mask;
-
-    if (color == BLUE)
-    {
-        inRange(hsv, Scalar(lbc[0], lbc[1], lbc[2]), Scalar(ubc[0], ubc[1], ubc[2]), mask);
-    } else if (color == GREEN)
-    {
-        inRange(hsv, Scalar(lgc[0], lgc[1], lgc[2]), Scalar(ugc[0], ugc[1], ugc[2]), mask);
-    } else if (color == RED)
-    {
-        inRange(hsv, Scalar(lrc[0], lrc[1], lrc[2]), Scalar(urc[0], urc[1], urc[2]), mask);
-    }
-
-    if (Vision_Mode)
-    {
-        imshow("mask", mask);
-    }
-
-    vector<vector<Point> > contours;
-    findContours(mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
-    double max_perimeter = 0;
-    vector<Point> largest_contour;
-
-    // 遍历每个轮廓
-    for (const auto &cnt: contours)
-    {
-        double perimeter = arcLength(cnt, true);
-        if (perimeter > max_perimeter)
-        {
-            max_perimeter = perimeter;
-            largest_contour = cnt;
-        }
-    }
-
-    int x = 0, y = 0, w = 0, h = 0;
-
-    if (!largest_contour.empty())
-    {
-        Rect boundingRect = cv::boundingRect(largest_contour);
-        x = boundingRect.x;
-        y = boundingRect.y;
-        w = boundingRect.width;
-        h = boundingRect.height;
-        cv::Point center = calculateCenter(x, y, w, h);
-
-
-        if (max_perimeter > min_contour && (x + w / 2) > 310)
-        {
-            object_data.position_matrix[0] = {x, y};
-            object_data.position_matrix[1] = {x, y + h};
-            object_data.position_matrix[2] = {x + w, y + h};
-            object_data.position_matrix[3] = {x + 2, y};
-
-
-            cv::Point center = calculateCenter(x, y, w, h);
-        } else
-        {
-            x = 0;
-            y = 0;
-            w = 0;
-            h = 0;
-            object_data.position_matrix[0] = {x, y};
-            object_data.position_matrix[1] = {x, y + h};
-            object_data.position_matrix[2] = {x + w, y + h};
-            object_data.position_matrix[3] = {x + 2, y};
-
-            cv::Point center = calculateCenter(x, y, w, h);
-        }
-    } else
-    {
-        object_data.position_matrix[0] = {x, y};
-        object_data.position_matrix[1] = {x, y + h};
-        object_data.position_matrix[2] = {x + w, y + h};
-        object_data.position_matrix[3] = {x + 2, y};
-
-        int center_x = x + w / 2;
-        int center_y = y + h / 2;
-
-        cv::Point center = calculateCenter(x, y, w, h);
-    }
-
-    if (Vision_Mode)
-    {
-        cv::Point center = calculateCenter(x, y, w, h);
-        rectangle(img, Point(x, y), Point(x + w, y + h), Scalar(0, 255, 0), 2);
-        circle(img, center, 5, Scalar(0, 0, 0), -1);
-        imshow("materail_img", img);
-    }
 }
 
 void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
 {
+    YAML::Node Landmark_Thresholds = config["Landmark_Thresholds"];
+    circle_data.color = color;
+    // 正确地将 YAML 文件中的数组解析为 cv::Scalar
+    cv::Scalar lbc = getColorThreshold(Landmark_Thresholds, "lower_blue_circle");
+    cv::Scalar ubc = getColorThreshold(Landmark_Thresholds, "upper_blue_circle");
+    cv::Scalar lgc = getColorThreshold(Landmark_Thresholds, "lower_green_circle");
+    cv::Scalar ugc = getColorThreshold(Landmark_Thresholds, "upper_green_circle");
+    cv::Scalar lrc1 = getColorThreshold(Landmark_Thresholds, "lower_red_1_circle");
+    cv::Scalar urc1 = getColorThreshold(Landmark_Thresholds, "upper_red_1_circle");
+    cv::Scalar lrc2 = getColorThreshold(Landmark_Thresholds, "lower_red_2_circle");
+    cv::Scalar urc2 = getColorThreshold(Landmark_Thresholds, "upper_red_2_circle");
+
+    // 定义颜色常量
+    const int BLUE = config["Color"]["blue"].as<int>();
+    const int GREEN = config["Color"]["green"].as<int>();
+    const int RED = config["Color"]["red"].as<int>();
+
+    // 转换图像为 HSV 颜色空间
+    Mat hsv;
+
+    cvtColor(img, hsv, COLOR_BGR2HSV);
+
+    cv::Mat mask, res;
+    if (color == BLUE)
+    {
+        cv::inRange(hsv, lbc, ubc, mask);
+        cv::bitwise_and(img, img, res, mask);
+    } else if (color == GREEN)
+    {
+        cv::inRange(hsv, lgc, ugc, mask);
+        cv::bitwise_and(img, img, res, mask);
+    } else if (color == RED)
+    {
+        cv::Mat mask_red_1, mask_red_2;
+        cv::inRange(hsv, lrc1, urc1, mask_red_1);
+        cv::inRange(hsv, lrc2, urc2, mask_red_2);
+        cv::bitwise_or(mask_red_1, mask_red_2, mask);
+        cv::bitwise_and(img, img, res, mask);
+    }
+
+
+    // 将结果转换为灰度图像
+    Mat img_gray;
+    cvtColor(res, img_gray, COLOR_BGR2GRAY);
+    medianBlur(img_gray, img_gray, 5);
+
+    // 使用霍夫圆变换检测圆形
+    vector<Vec3f> circles;
+    HoughCircles(img_gray, circles, HOUGH_GRADIENT_ALT, 1, 20, 50, 0.8, 30, 0);
+
+    Vec3f smallest_circle;
+
+
+    int min_radius = config["min_radius"].as<int>();
+
+    if (!circles.empty())
+    {
+        for (const auto &cnt: circles)
+        {
+            int radius = cnt[2];
+            if (radius < min_radius)
+            {
+                min_radius = radius;
+                smallest_circle = cnt;
+            }
+        }
+
+        if (config["Vision_Mode"].as<bool>())
+        {
+            circle(img, Point(smallest_circle[0], smallest_circle[1]), smallest_circle[2], Scalar(0, 255, 0), 2);
+        }
+
+        int x = smallest_circle[0];
+        int y = smallest_circle[1];
+
+        circle_data.center = Point(x, y);
+
+        if (config["Vision_Mode"].as<bool>())
+        {
+            circle(img, circle_data.center, 5, Scalar(0, 0, 0), -1);
+            imshow("Landmark_img", img);
+        }
+    } else
+    {
+        circle_data.center = Point(0, 0);
+
+        if (config["Vision_Mode"].as<bool>())
+        {
+            imshow("Landmark_img", img);
+        }
+    }
 }
 
 void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)

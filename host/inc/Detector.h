@@ -50,10 +50,19 @@ struct Object_Data
     }
 };
 
+struct Circle_Data
+{
+    cv::Point center;
+    int color;
+    // 默认构造函数
+    Circle_Data() : center(0, 0)
+    {
+    }
+};
+
 class Detector
 {
 public:
-    // Detector(const std::string& config_file);
     Detector();
 
     ~Detector();
@@ -61,7 +70,7 @@ public:
 
     void load_config(const std::string &config_file);
 
-    void Material_detect(const Mat &img, int color,const YAML::Node &config);
+    void Material_detect(const Mat &img, int color, const YAML::Node &config);
 
     void Land_mark_Detect(Mat img, int color, const YAML::Node &config);
 
@@ -71,12 +80,13 @@ public:
 
     void Set_Object_Data();
 
-    static const int RED = 3;
-    static const int GREEN = 4;
-    static const int BLUE = 5;
-
     // 成员变量
     Object_Data object_data;
+    Circle_Data circle_data;
+
+    static int RED;
+    static int GREEN;
+    static int BLUE;
 };
 
 #endif //DETECTOR_H

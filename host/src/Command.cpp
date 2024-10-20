@@ -96,6 +96,31 @@ bool Command::generateMaterialFrame(Frame &frame, const YAML::Node &config,
 
 bool Command::generateDetectFrame(Frame &frame, const YAML::Node &config)
 {
+    frame.head = config["frame"]["head"].as<uint8_t>();
+    frame.mode = 0x03;
+    frame.byte1 = config["frame"]["byte1"].as<uint8_t>();
+    frame.byte2 = config["frame"]["byte2"].as<uint8_t>();
+    frame.byte3 = config["frame"]["byte3"].as<uint8_t>();
+    frame.byte4 = config["frame"]["byte4"].as<uint8_t>();
+    frame.byte5 = config["frame"]["byte5"].as<uint8_t>();
+    frame.byte6 = config["frame"]["byte6"].as<uint8_t>();
+    frame.byte7 = config["frame"]["byte7"].as<uint8_t>();
+    frame.tail = config["frame"]["tail"].as<uint8_t>();
+    return true;
+}
+
+bool Command::generateDetectFrame(Frame &frame, const YAML::Node &config, int x, int y, int color)
+{
+    frame.head = config["frame"]["head"].as<uint8_t>();
+    frame.mode = 0x03;
+    frame.byte2 = x;
+    frame.byte1 = x >> 8;
+    frame.byte4 = y;
+    frame.byte3 = y >> 8;
+    frame.byte5 = config["frame"]["byte5"].as<uint8_t>();
+    frame.byte6 = config["frame"]["byte6"].as<uint8_t>();
+    frame.byte7 = color;
+    frame.tail = config["frame"]["tail"].as<uint8_t>();
     return true;
 }
 

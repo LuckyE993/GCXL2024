@@ -28,6 +28,9 @@ public:
 
     bool generateDetectFrame(Frame &frame, const YAML::Node &config);
 
+    bool generateDetectFrame(Frame &frame, const YAML::Node &config,
+                             int x, int y, int color);
+
     Frame generateConfirmFrame(const YAML::Node &config);
 
     int mode;

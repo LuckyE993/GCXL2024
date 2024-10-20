@@ -61,10 +61,10 @@ int getMovementStatus(const Point &center, pair<int, int> range)
         return 2;
     } else if (center.x < range.first)
     {
-        return 1;
+        return 3;
     } else if (center.x > range.second)
     {
-        return 3;
+        return 1;
     }
     return 0;
 }
@@ -199,6 +199,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
                 {
                     detector.Material_detect_v2(frame, config);
                     x_positions.push_back(detector.object_data.center.x);
+
                     if (x_positions.size() > 50)
                     {
                         x_positions.pop_front(); // 保持队列大小为10
@@ -213,60 +214,48 @@ void processMode(int mode, WzSerialportPlus &serialport,
                         move_status = 1;
                     }
 
-
                     // 判断当前中心点的位置范围
                     move_range = getMovementStatus(detector.object_data.center, make_pair(300, 340));
-                    previousCenter = detector.object_data.center;
                     command.generateMaterialFrame(sendFrame,
                                                   config, detector.object_data.center.x, detector.object_data.center.y,
                                                   move_status, move_range, detector.object_data.color);
-                    // switch (movementStatus)
-                    // {
-                    //     case 0x01:
-                    //         cout << "Moving from right to center" << endl;
-                    //         break;
-                    //     case 0x02:
-                    //         cout << "Stationary at center" << endl;
-                    //         break;
-                    //     case 0x03:
-                    //         cout << "Moving away from center" << endl;
-                    //         break;
-                    //     default:
-                    //         cout << "No significant movement detected" << endl;
-                    //         break;
-                    // }
-
-                    // cout << "Detector: Center: " << detector.object_data.center.x
-                    //         << " " << detector.object_data.center.y
-                    //         << "  Color: " << detector.object_data.color << endl;
-                    /*
-                    *struct Object_Data
-                        {
-                            std::vector<std::vector<int> > position_matrix;
-                            cv::Point center;
-                            int color;
-
-                            // 默认构造函数
-                            Object_Data() : position_matrix(4, std::vector<int>(2, 0)), center(0, 0), color(0)
-                            {
-                            }
-                        };
-                     */
-                    // imshow("Frame", frame);
                 }
 
-                char key = waitKey(1);
-                if (key == 'q')
-                {
-                    break;
-                }
+
             }
+
+            detect_camera.stopCapture();
             break;
         }
         case 3:
+        {
             clog << "[Serial] Received frame mode: 3" << endl;
-        // TODO 地标圆心检测的实现
+            // TODO 地标圆心检测的实现
+            detect_camera.startCapture();
+            command.generateDetectFrame(sendFrame, config);
+            // 启动新的发送线程
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                serialThreadRunning = true;
+                serial_thread = std::thread(sendFramePeriodically, std::ref(serialport), sendLatecy);
+            }
+
+            while (!stop_previous_thread)
+            {
+                Mat frame = detect_camera.getFrame();
+                if (!frame.empty())
+                {
+                    int color = 0x05;
+                    detector.Land_mark_Detect(frame, color, config);
+                    // cout << "x: " << detector.circle_data.center.x << "   y: " << detector.circle_data.center.y << endl;
+                }
+                command.generateDetectFrame(sendFrame, config,
+                                            detector.circle_data.center.x, detector.circle_data.center.y,
+                                            detector.circle_data.color);
+            }
+            detect_camera.stopCapture();
             break;
+        }
         default:
             cout << "[Serial] Unknown mode received: " << mode << endl;
     }
@@ -355,130 +344,3 @@ int main()
 
     return 0;
 }
-
-/*printf("received: %s\n", data);
-
-        if (length == sizeof(Frame))
-        {
-            Frame *receivedFrame = (Frame *) data;
-            if (receivedFrame->head == receiveFrame.head && receivedFrame->tail == receiveFrame.tail)
-            {
-                clog << "  Received frame matches success;" << endl;
-                Frame confirm_frame = command.generateConfirmFrame(config);
-                serialport.send((char *) &confirm_frame, sizeof(confirm_frame));
-
-                //TODO mode0 单独考虑
-                if (receivedFrame->mode == 0x00)
-                {
-                    cout << "Received frame mode: 0 Stop send." << endl;
-                    if (serial_thread.joinable())
-                    {
-                        std::cout << "Thread has started, attempting to stop it.\n";
-
-                        // 停止线程
-                        {
-                            std::lock_guard<std::mutex> lock(mtx);
-                            serialThreadRunning = false; // 设置标志位为false
-                        }
-                        condition.notify_all(); // 唤醒阻塞的线程
-                        serial_thread.join(); // 等待线程结束
-                        std::cout << "Thread has been stopped.\n";
-                    } else
-                    {
-                        std::cout << "The thread has not started.\n";
-                    }
-                }
-                //TODO mode123 放在一个 switch 线程里
-
-                std::thread modeSwitch([&]()
-                {
-                    switch (receivedFrame->mode)
-                    {
-                        case 1:
-                            //任务码如果没扫到仍然不能通过00进行暂停，原因是主进程卡在while循环。
-                        {
-                            cout << "Received frame mode: 1 QRCode" << endl;
-                            qr_camera.startCapture(); // 开始捕获视频
-                            this_thread::sleep_for(std::chrono::milliseconds(150));
-
-                            while (true)
-                            {
-                                Mat frame = qr_camera.getFrame(); // 获取当前帧
-
-                                // 检查是否成功获取帧
-                                if (frame.empty())
-                                {
-                                    cerr << "无法获取帧!" << endl;
-                                    continue;
-                                }
-                                if (qrCodeScanner.processQRCode(frame))
-                                {
-                                    const array<uint8_t, 6> &bytes = qrCodeScanner.getBytes();
-                                    cout << "解析后的6个字节: ";
-                                    for (const auto &byte: bytes)
-                                    {
-                                        cout << (int) byte << " ";
-                                    }
-
-                                    if (command.generateQRcodeFrame(sendFrame, config, bytes))
-                                        cout << "generateQRcodeFrame success" << endl;
-                                    else
-                                        cerr << "generateQRcodeFrame failed" << endl;
-                                    // 显示帧
-                                    if (debugFlag == 1)
-                                        imshow("Camera Video", frame);
-                                    break;
-                                }
-                            }
-                            qr_camera.stopCapture();
-                            // 启动线程前，确保旧线程已停止
-                            if (serial_thread.joinable())
-                            {
-                                {
-                                    std::lock_guard<std::mutex> lock(mtx);
-                                    serialThreadRunning = false;
-                                }
-                                condition.notify_all(); // 唤醒阻塞的线程
-                                serial_thread.join(); // 等待线程结束
-                            }
-
-                            // 重置状态并启动新线程
-                            {
-                                std::lock_guard<std::mutex> lock(mtx);
-                                serialThreadRunning = true;
-                                serial_thread = std::thread(sendFramePeriodically, std::ref(serialport), sendLatecy);
-                            }
-                            break;
-                        }
-                        case 2:
-                            //TODO 物料检测
-                            cout << "Received frame mode: 2" << endl;
-
-
-                            break;
-                        case 3:
-                            //TODO 地标圆心检测
-                            cout << "Received frame mode: 3" << endl;
-
-
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                modeSwitch.detach();
-
-
-                for (int i = 1; i < sizeof(Frame); i++)
-                {
-                    cout << "Received data: " << static_cast<int>(data[i]) << endl;
-                }
-            } else
-            {
-                cerr << "Received frame matches failed. Frame head or tail error" << endl;
-            }
-        } else
-        {
-            cerr << "Received frame matches failed. Length err len: " << length
-                    << "Frame len: " << sizeof(Frame) << endl;
-        }*/

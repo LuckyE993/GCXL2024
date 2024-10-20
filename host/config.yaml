@@ -46,4 +46,12 @@ Landmark_Thresholds:
   lower_red_2_circle: [156, 0, 46]
   upper_red_2_circle: [180, 255, 255]
 
+Color:
+  blue: 0x03
+  green: 0x04
+  red: 0x05
+
 min_perimeter_threshold: 800.0
+
+min_radius: 640
+Vision_Mode: True
