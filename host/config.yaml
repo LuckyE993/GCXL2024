@@ -22,8 +22,8 @@ mode:
   Colormode: 0x02
   Circlemode: 0x03
 
-cam_QRCode: 0
-cam_Det: 2
+cam_QRCode: 2
+cam_Det: 0
 
 debug_flag: 1
 send_latecy_ms: 50

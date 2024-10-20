@@ -22,6 +22,10 @@ public:
 
     bool generateMaterialFrame(Frame &frame, const YAML::Node &config);
 
+    bool generateMaterialFrame(Frame &frame, const YAML::Node &config,
+                               int x, int y,
+                               int move_status, int move_range, int color);
+
     bool generateDetectFrame(Frame &frame, const YAML::Node &config);
 
     Frame generateConfirmFrame(const YAML::Node &config);

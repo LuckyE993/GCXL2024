@@ -38,6 +38,36 @@ Frame receiveFrame = serialport.initReceiveFrame(config);
 int debugFlag = config["debug_flag"].as<int>();
 int sendLatecy = config["send_latecy_ms"].as<int>();
 
+// 函数判断是否连续10次静止
+bool checkIfStationary(const std::deque<int> &x_positions, int threshold, int size)
+{
+    if (x_positions.size() < size)
+    {
+        return false; // 如果记录的点数不足10个，返回false
+    }
+
+    int min_x = *min_element(x_positions.begin(), x_positions.end());
+    int max_x = *max_element(x_positions.begin(), x_positions.end());
+
+    // 如果最大值和最小值的差值小于阈值，认为物体静止
+    return (max_x - min_x) <= threshold;
+}
+
+// 函数判断物体运动状态
+int getMovementStatus(const Point &center, pair<int, int> range)
+{
+    if (center.x > range.first && center.x < range.second)
+    {
+        return 2;
+    } else if (center.x < range.first)
+    {
+        return 1;
+    } else if (center.x > range.second)
+    {
+        return 3;
+    }
+    return 0;
+}
 
 // 发送帧的函数
 void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
@@ -46,12 +76,11 @@ void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
     while (serialThreadRunning)
     {
         condition.wait_for(lock, std::chrono::milliseconds(interval_ms));
-
-
         // 发送发送帧
         serialport.send((char *) &sendFrame, sizeof(sendFrame));
-        std::cout << "Frame sent at interval of " << interval_ms << " ms." << std::endl;
+        serialport.printFrameInHex(sendFrame);
     }
+
     std::cout << "Serial thread stopping...\n";
 }
 
@@ -149,7 +178,89 @@ void processMode(int mode, WzSerialportPlus &serialport,
         case 2:
         {
             clog << "[Serial] Received frame mode: 2" << endl;
-           
+            detect_camera.startCapture();
+            Point previousCenter(640, 0);
+            int move_status = 1; // 存储当前运动状态
+            int move_range = 0;
+            std::deque<int> x_positions; // 存储最近10个x坐标
+            int stationary_threshold = 10; // 判断静止的阈值
+
+            command.generateMaterialFrame(sendFrame, config);
+            // 启动新的发送线程
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                serialThreadRunning = true;
+                serial_thread = std::thread(sendFramePeriodically, std::ref(serialport), sendLatecy);
+            }
+            while (!stop_previous_thread)
+            {
+                Mat frame = detect_camera.getFrame(); // 获取当前帧
+                if (!frame.empty())
+                {
+                    detector.Material_detect_v2(frame, config);
+                    x_positions.push_back(detector.object_data.center.x);
+                    if (x_positions.size() > 50)
+                    {
+                        x_positions.pop_front(); // 保持队列大小为10
+                    }
+
+                    if (checkIfStationary(x_positions, stationary_threshold, 50)) // 静止
+                    {
+                        // cout << "Object is stationary based on the last 10 positions" << endl;
+                        move_status = 2;
+                    } else
+                    {
+                        move_status = 1;
+                    }
+
+
+                    // 判断当前中心点的位置范围
+                    move_range = getMovementStatus(detector.object_data.center, make_pair(300, 340));
+                    previousCenter = detector.object_data.center;
+                    command.generateMaterialFrame(sendFrame,
+                                                  config, detector.object_data.center.x, detector.object_data.center.y,
+                                                  move_status, move_range, detector.object_data.color);
+                    // switch (movementStatus)
+                    // {
+                    //     case 0x01:
+                    //         cout << "Moving from right to center" << endl;
+                    //         break;
+                    //     case 0x02:
+                    //         cout << "Stationary at center" << endl;
+                    //         break;
+                    //     case 0x03:
+                    //         cout << "Moving away from center" << endl;
+                    //         break;
+                    //     default:
+                    //         cout << "No significant movement detected" << endl;
+                    //         break;
+                    // }
+
+                    // cout << "Detector: Center: " << detector.object_data.center.x
+                    //         << " " << detector.object_data.center.y
+                    //         << "  Color: " << detector.object_data.color << endl;
+                    /*
+                    *struct Object_Data
+                        {
+                            std::vector<std::vector<int> > position_matrix;
+                            cv::Point center;
+                            int color;
+
+                            // 默认构造函数
+                            Object_Data() : position_matrix(4, std::vector<int>(2, 0)), center(0, 0), color(0)
+                            {
+                            }
+                        };
+                     */
+                    // imshow("Frame", frame);
+                }
+
+                char key = waitKey(1);
+                if (key == 'q')
+                {
+                    break;
+                }
+            }
             break;
         }
         case 3:

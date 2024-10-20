@@ -1,6 +1,9 @@
 #include "usart.hpp"
-#include "iostream"
 
+#include <iomanip>
+
+#include "iostream"
+using namespace std;
 
 WzSerialportPlus::WzSerialportPlus()
     : serialportFd(-1),
@@ -323,4 +326,19 @@ Frame WzSerialportPlus::initReceiveFrame(const YAML::Node &config)
     frame.tail = config["frame"]["tail"].as<uint8_t>();
     std::clog << "Receive frame initialized." << std::endl;
     return frame;
+}
+
+void WzSerialportPlus::printFrameInHex(const Frame &frame)
+{
+    // 设置十六进制输出格式，setw(2)表示输出占2位，setfill('0')表示不足两位补0
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.head << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.mode << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte1 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte2 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte3 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte4 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte5 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte6 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.byte7 << " ";
+    cout << "0x" << hex << setw(2) << setfill('0') << (int)frame.tail << endl;
 }

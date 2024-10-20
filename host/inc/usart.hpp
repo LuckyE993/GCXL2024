@@ -77,6 +77,8 @@ public:
 
     Frame initReceiveFrame(const YAML::Node &config);
 
+    void printFrameInHex(const Frame &frame);
+
 protected:
     virtual void onReceive(char *data, int length);
 
