@@ -2,6 +2,7 @@
 // Created by luckye on 24-10-18.
 //
 #include "Command.h"
+#include <iostream>
 
 Command::Command()
 {
@@ -57,7 +58,7 @@ bool Command::generateQRcodeFrame(Frame &frame, const YAML::Node &config, const 
     frame.byte6 = QRCode[5];
     frame.byte7 = config["frame"]["byte7"].as<uint8_t>();
     frame.tail = config["frame"]["tail"].as<uint8_t>();
-    std::clog << "Send frame initialized." << std::endl;
+    std::clog << "QR frame generated." << std::endl;
     return true;
 }
 
@@ -69,4 +70,21 @@ bool Command::generateMaterialFrame(Frame &frame, const YAML::Node &config)
 bool Command::generateDetectFrame(Frame &frame, const YAML::Node &config)
 {
     return true;
+}
+
+Frame Command::generateConfirmFrame(const YAML::Node &config)
+{
+    Frame frame;
+    frame.head = config["frame"]["head"].as<uint8_t>();
+    frame.mode = 0x07;
+    frame.byte1 = config["frame"]["byte1"].as<uint8_t>();
+    frame.byte2 = config["frame"]["byte2"].as<uint8_t>();
+    frame.byte3 = config["frame"]["byte3"].as<uint8_t>();
+    frame.byte4 = config["frame"]["byte4"].as<uint8_t>();
+    frame.byte5 = config["frame"]["byte5"].as<uint8_t>();
+    frame.byte6 = config["frame"]["byte6"].as<uint8_t>();
+    frame.byte7 = config["frame"]["byte7"].as<uint8_t>();
+    frame.tail = config["frame"]["tail"].as<uint8_t>();
+    std::clog << "Confirm frame generated." << std::endl;
+    return frame;
 }

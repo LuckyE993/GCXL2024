@@ -4,10 +4,6 @@
 
 #ifndef COMMAND_H
 #define COMMAND_H
-#include <iostream>
-#include <string>
-#include <thread>
-#include <functional>
 #include "yaml-cpp/yaml.h"
 #include "usart.hpp"
 
@@ -27,6 +23,8 @@ public:
     bool generateMaterialFrame(Frame &frame, const YAML::Node &config);
 
     bool generateDetectFrame(Frame &frame, const YAML::Node &config);
+
+    Frame generateConfirmFrame(const YAML::Node &config);
 
     int mode;
 };
