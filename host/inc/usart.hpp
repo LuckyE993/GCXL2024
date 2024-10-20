@@ -1,12 +1,22 @@
 #ifndef __WZSERIALPORTPLUS_H__
 #define __WZSERIALPORTPLUS_H__
 
-#include <iostream>
 #include <string>
 #include <thread>
 #include <functional>
 #include "yaml-cpp/yaml.h"
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <errno.h>
+#include <getopt.h>
+#include <string.h>
+#include <time.h>
+#include <sys/select.h>
 struct Frame
 {
     uint8_t head;
@@ -21,16 +31,6 @@ struct Frame
     uint8_t tail;
 };
 
-// struct Command
-// {
-//     uint8_t mode;
-//     `uint8_t color;
-//     uint8_t xh;
-//     uint8_t xl;
-//     uint8_t yh;
-//     uint8_t yl;
-//
-// };
 
 using ReceiveCallback = std::function<void (char *, int)>;
 
