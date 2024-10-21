@@ -48,10 +48,10 @@ Landmark_Thresholds:
 
 Color:
   blue: 0x03
-  green: 0x04
-  red: 0x05
+  green: 0x02
+  red: 0x01
 
-min_perimeter_threshold: 800.0
+min_perimeter_threshold: 1000.0
 
 min_radius: 640
 Vision_Mode: True
