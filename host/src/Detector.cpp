@@ -219,7 +219,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     {
         largest_contour = largest_contour_blue;
         max_perimeter = max_perimeter_blue;
-        object_data.color = 0x05; // 蓝色
+        object_data.color = 0x03; // 蓝色
     }
 
     // 查找绿色轮廓中的最大轮廓
@@ -229,7 +229,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     {
         largest_contour = largest_contour_green;
         max_perimeter = max_perimeter_green;
-        object_data.color = 0x04; // 绿色
+        object_data.color = 0x02; // 绿色
     }
 
     // 查找红色轮廓中的最大轮廓
@@ -239,7 +239,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     {
         largest_contour = largest_contour_red;
         max_perimeter = max_perimeter_red;
-        object_data.color = 0x03; // 红色
+        object_data.color = 0x01; // 红色
     }
 
     // 如果没有符合条件的轮廓
@@ -278,6 +278,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
         circle(img, object_data.center, 5, Scalar(0, 0, 0), -1);
         //rectangle(img, Point(x, y), Point(x + w, y + h), Scalar(255, 239, 213), 1);
         imshow("materail_img", img);
+        waitKey(1);
     }
 }
 

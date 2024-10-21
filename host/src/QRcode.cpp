@@ -49,10 +49,10 @@ bool QRcode::processQRCode(const cv::Mat &frame)
 // 解析二维码数据并存储为6个字节
 bool QRcode::parseQRCodeData(const std::string &qrData)
 {
-    // 检查是否符合"123-321"格式
-    if (qrData.size() != 7 || qrData[3] != '-')
+    // 检查是否符合"123+321"格式
+    if (qrData.size() != 7 || qrData[3] != '+')
     {
-        std::cerr << "二维码格式不正确，要求格式为'123-321'" << std::endl;
+        std::cerr << "二维码格式不正确，要求格式为'123+321'" << std::endl;
         return false;
     }
 

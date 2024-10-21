@@ -153,8 +153,8 @@ void processMode(int mode, WzSerialportPlus &serialport,
             qr_camera.stopCapture();
             if (stop_previous_thread)
             {
-                destroyWindow("QR Camera Video");
-                break;
+                // destroyWindow("QR Camera Video");
+               // break;
             }
             // 启动新线程前，确保旧线程已停止
             if (serial_thread.joinable())
@@ -295,7 +295,7 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
                 stop_previous_thread = true; // 通知前一个线程终止
                 mode_thread.detach(); // 使得线程可以独立运行，不用等待它结束
             }
-            destroyWindow("QR Camera Video");
+            // destroyWindow("QR Camera Video");
 
             this_thread::sleep_for(std::chrono::milliseconds(50));
             mode_thread = std::thread(processMode, receivedFrame->mode, std::ref(serialport),
@@ -313,7 +313,8 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
         }
     } else
     {
-        cerr << "Received frame matches failed. Length error." << endl;
+        cerr << "Received frame matches failed. Length error, length is "<<sizeof(data) << endl;
+        
     }
 }
 
