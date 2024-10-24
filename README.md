@@ -18,7 +18,7 @@ startup_terminal.desktop file content
 [Desktop Entry]
 Type=Application
 Terminal=true
-Exec=/home/car/GCXL2024/host/script.sh
+Exec=/home/car/GCXL2024/host/startup_terminal_script.sh
 Name=Startup Terminal
 Comment=Automatically
 ```

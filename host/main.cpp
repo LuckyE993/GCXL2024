@@ -35,7 +35,6 @@ condition_variable condition;
 Frame sendFrame = serialport.initSendFrame(config);
 Frame receiveFrame = serialport.initReceiveFrame(config);
 
-int debugFlag = config["debug_flag"].as<int>();
 int sendLatecy = config["send_latecy_ms"].as<int>();
 
 // 函数判断是否连续10次静止
@@ -88,7 +87,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
                  QRcode &qrCodeScanner, Command &command,
                  Camera &qr_camera, Detector &detector,
                  Frame &sendFrame, YAML::Node &config,
-                 int debugFlag, int sendLatecy)
+                 int sendLatecy)
 {
     stop_previous_thread = false; // 新线程开始时，标志位复位
 
@@ -154,7 +153,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
             if (stop_previous_thread)
             {
                 // destroyWindow("QR Camera Video");
-               // break;
+                // break;
             }
             // 启动新线程前，确保旧线程已停止
             if (serial_thread.joinable())
@@ -220,8 +219,6 @@ void processMode(int mode, WzSerialportPlus &serialport,
                                                   config, detector.object_data.center.x, detector.object_data.center.y,
                                                   move_status, move_range, detector.object_data.color);
                 }
-
-
             }
 
             detect_camera.stopCapture();
@@ -245,7 +242,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
                 Mat frame = detect_camera.getFrame();
                 if (!frame.empty())
                 {
-                    int color = 0x05;
+                    int color = config["Color"]["green"].as<int>();
                     detector.Land_mark_Detect(frame, color, config);
                     // cout << "x: " << detector.circle_data.center.x << "   y: " << detector.circle_data.center.y << endl;
                 }
@@ -258,13 +255,14 @@ void processMode(int mode, WzSerialportPlus &serialport,
         }
         default:
             cout << "[Serial] Unknown mode received: " << mode << endl;
+            break;
     }
 }
 
 
 // 串口接收回调函数
 void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode &qrCodeScanner, Command &command,
-                    Camera &qr_camera, Detector &detector, Frame &sendFrame, YAML::Node &config, int debugFlag,
+                    Camera &qr_camera, Detector &detector, Frame &sendFrame, YAML::Node &config,
                     int sendLatecy)
 {
     if (length == sizeof(Frame))
@@ -301,7 +299,7 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
             mode_thread = std::thread(processMode, receivedFrame->mode, std::ref(serialport),
                                       std::ref(qrCodeScanner), std::ref(command),
                                       std::ref(qr_camera), std::ref(detector), std::ref(sendFrame),
-                                      std::ref(config), debugFlag, sendLatecy);
+                                      std::ref(config), sendLatecy);
 
             for (int i = 1; i < sizeof(Frame); i++)
             {
@@ -313,22 +311,16 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
         }
     } else
     {
-        cerr << "Received frame matches failed. Length error, length is "<<sizeof(data) << endl;
-        
+        cerr << "Received frame matches failed. Length error, length is " << sizeof(data) << endl;
     }
 }
 
 int main()
 {
-    /*--------------------------------------------------  Camera  -------------------------------------------------*/
-
-    /*--------------------------------------------------  Camera  -------------------------------------------------*/
-
-
     serialport.setReceiveCalback([&](char *data, int length)
     {
-        serialCallback(data, length, serialport, qrCodeScanner, command, qr_camera, detector, sendFrame, config,
-                       debugFlag, sendLatecy);
+        serialCallback(data, length, serialport, qrCodeScanner, command, qr_camera,
+                       detector, sendFrame, config, sendLatecy);
     });
 
     serialport.initSerialFromConfig(serialport, config_dir);

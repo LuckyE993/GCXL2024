@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Terminal=true
+Exec=/home/car/GCXL2024/host/startup_terminal_script.sh
+Name=Startup Terminal Script
+Comment=Automatically set permissions and start program
