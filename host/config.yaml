@@ -22,8 +22,8 @@ mode:
   Colormode: 0x02
   Circlemode: 0x03
 
-cam_QRCode: 2
-cam_Det: 0
+cam_QRCode: 0
+cam_Det: 2
 
 debug_flag: 1
 send_latecy_ms: 50
@@ -33,8 +33,8 @@ Material_Thresholds:
   upper_blue_contour: [124, 255, 255]
   lower_green_contour: [40, 92, 46]
   upper_green_contour: [90, 255, 255]
-  lower_red_contour: [160, 43, 46]
-  upper_red_contour: [180, 255, 255]
+  lower_red_1_contour: [ 0, 83, 46]
+  upper_red_1_contour: [ 24, 255, 255]
 
 Landmark_Thresholds:
   lower_blue_circle: [90, 0, 0]

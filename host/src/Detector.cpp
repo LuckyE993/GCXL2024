@@ -64,7 +64,6 @@ cv::Scalar getColorThreshold(const YAML::Node &thresholds, const std::string &co
 
 Detector::Detector()
 {
-
 }
 
 Detector::~Detector()
@@ -122,7 +121,6 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
         cv::bitwise_and(img, img, res, mask);
     }
 
-
     // 将结果转换为灰度图像
     Mat img_gray;
     cvtColor(res, img_gray, COLOR_BGR2GRAY);
@@ -133,7 +131,6 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
     HoughCircles(img_gray, circles, HOUGH_GRADIENT_ALT, 1, 20, 50, 0.8, 30, 0);
 
     Vec3f smallest_circle;
-
 
     int min_radius = config["min_radius"].as<int>();
 
@@ -149,7 +146,7 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
             }
         }
 
-        if (config["Vision_Mode"].as<bool>())
+        if (config["debug_flag"].as<int>())
         {
             circle(img, Point(smallest_circle[0], smallest_circle[1]), smallest_circle[2], Scalar(0, 255, 0), 2);
         }
@@ -159,7 +156,7 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
 
         circle_data.center = Point(x, y);
 
-        if (config["Vision_Mode"].as<bool>())
+        if (config["debug_flag"].as<int>())
         {
             circle(img, circle_data.center, 5, Scalar(0, 0, 0), -1);
             imshow("Landmark_img", img);
@@ -168,10 +165,15 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
     {
         circle_data.center = Point(0, 0);
 
-        if (config["Vision_Mode"].as<bool>())
+        if (config["debug_flag"].as<int>())
         {
             imshow("Landmark_img", img);
         }
+    }
+
+    if (config["debug_flag"].as<int>())
+    {
+        waitKey(1);
     }
 }
 
@@ -184,8 +186,8 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     cv::Scalar ubc = getColorThreshold(Material_Thresholds, "upper_blue_contour");
     cv::Scalar lgc = getColorThreshold(Material_Thresholds, "lower_green_contour");
     cv::Scalar ugc = getColorThreshold(Material_Thresholds, "upper_green_contour");
-    cv::Scalar lrc = getColorThreshold(Material_Thresholds, "lower_red_contour");
-    cv::Scalar urc = getColorThreshold(Material_Thresholds, "upper_red_contour");
+    cv::Scalar lrc = getColorThreshold(Material_Thresholds, "lower_red_1_contour");
+    cv::Scalar urc = getColorThreshold(Material_Thresholds, "upper_red_1_contour");
 
     // 转换颜色空间
     cv::Mat hsv;
@@ -202,7 +204,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     findContours(mask_green, contours_green, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
     findContours(mask_red, contours_red, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
-    if (config["debug_flag"])
+    if (config["debug_flag"].as<int>())
     {
         imshow("mask_blue", mask_blue);
         imshow("mask_green", mask_green);
@@ -273,7 +275,7 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     object_data.center = Point(center_x, center_y);
 
     // cout << "Detector: Centor: " << center_x << " " << center_y << "Color: " << object_data.color << endl;
-    if (Vision_Mode)
+    if (config["debug_flag"].as<int>())
     {
         circle(img, object_data.center, 5, Scalar(0, 0, 0), -1);
         //rectangle(img, Point(x, y), Point(x + w, y + h), Scalar(255, 239, 213), 1);
