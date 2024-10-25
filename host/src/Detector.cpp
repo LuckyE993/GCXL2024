@@ -125,7 +125,10 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
     Mat img_gray;
     cvtColor(res, img_gray, COLOR_BGR2GRAY);
     medianBlur(img_gray, img_gray, 5);
-
+    if (config["debug_flag"].as<int>())
+    {
+        imshow("img_gray", img_gray);
+    }
     // 使用霍夫圆变换检测圆形
     vector<Vec3f> circles;
     HoughCircles(img_gray, circles, HOUGH_GRADIENT_ALT, 1, 20, 50, 0.8, 30, 0);
@@ -139,7 +142,7 @@ void Detector::Land_mark_Detect(Mat img, int color, const YAML::Node &config)
         for (const auto &cnt: circles)
         {
             int radius = cnt[2];
-            if (radius < min_radius)
+            if (radius > min_radius)
             {
                 min_radius = radius;
                 smallest_circle = cnt;
@@ -284,11 +287,182 @@ void Detector::Material_detect_v2(const Mat &img, const YAML::Node &config)
     }
 }
 
-
-void Detector::Edge_Detect(Mat &img)
+void Detector::Land_mark_Detect_v2(const Mat &img, const YAML::Node &config)
 {
+    YAML::Node Landmark_Thresholds = config["Landmark_Thresholds"];
+    circle_data.color = 0x00;
+    // 正确地将 YAML 文件中的数组解析为 cv::Scalar
+    cv::Scalar lbc = getColorThreshold(Landmark_Thresholds, "lower_blue_circle");
+    cv::Scalar ubc = getColorThreshold(Landmark_Thresholds, "upper_blue_circle");
+    cv::Scalar lgc = getColorThreshold(Landmark_Thresholds, "lower_green_circle");
+    cv::Scalar ugc = getColorThreshold(Landmark_Thresholds, "upper_green_circle");
+    cv::Scalar lrc1 = getColorThreshold(Landmark_Thresholds, "lower_red_1_circle");
+    cv::Scalar urc1 = getColorThreshold(Landmark_Thresholds, "upper_red_1_circle");
+    cv::Scalar lrc2 = getColorThreshold(Landmark_Thresholds, "lower_red_2_circle");
+    cv::Scalar urc2 = getColorThreshold(Landmark_Thresholds, "upper_red_2_circle");
+
+    // 定义颜色常量
+    const int BLUE = config["Color"]["blue"].as<int>();
+    const int GREEN = config["Color"]["green"].as<int>();
+    const int RED = config["Color"]["red"].as<int>();
+
+    Mat res;
+    // 转换图像为 HSV 颜色空间
+    Mat hsv;
+    cvtColor(img, hsv, COLOR_BGR2HSV);
+
+    // 定义变量用于记录最大轮廓信息
+    double max_area = 0.0;
+    std::vector<Point> largest_contour;
+    int detected_color = 0;
+
+    // 检测蓝色
+    Mat blue_mask, blue_res;
+    inRange(hsv, lbc, ubc, blue_mask);
+    std::vector<std::vector<Point> > blue_contours;
+    findContours(blue_mask, blue_contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+    for (const auto &contour: blue_contours)
+    {
+        double area = contourArea(contour);
+        if (area > max_area)
+        {
+            max_area = area;
+            largest_contour = contour;
+            detected_color = BLUE;
+        }
+    }
+
+    // 检测绿色
+    Mat green_mask;
+    inRange(hsv, lgc, ugc, green_mask);
+    std::vector<std::vector<Point> > green_contours;
+    findContours(green_mask, green_contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+    for (const auto &contour: green_contours)
+    {
+        double area = contourArea(contour);
+        if (area > max_area)
+        {
+            max_area = area;
+            largest_contour = contour;
+            detected_color = GREEN;
+        }
+    }
+
+    // 检测红色
+    Mat red_mask_1, red_mask_2, red_mask;
+    inRange(hsv, lrc1, urc1, red_mask_1);
+    inRange(hsv, lrc2, urc2, red_mask_2);
+    bitwise_or(red_mask_1, red_mask_2, red_mask);
+    std::vector<std::vector<Point> > red_contours;
+    findContours(red_mask, red_contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+    for (const auto &contour: red_contours)
+    {
+        double area = contourArea(contour);
+        if (area > max_area)
+        {
+            max_area = area;
+            largest_contour = contour;
+            detected_color = RED;
+        }
+    }
+
+    // 如果检测到任何轮廓，记录最大的轮廓信息
+    if (!largest_contour.empty())
+    {
+        if (detected_color == BLUE)
+        {
+            bitwise_and(img, img, res, blue_mask);
+        } else if (detected_color == GREEN)
+        {
+            bitwise_and(img, img, res, green_mask);
+        } else if (detected_color == RED)
+        {
+            bitwise_and(img, img, res, red_mask);
+        }
+    } else
+    {
+        return;
+    }
+
+    // 将结果转换为灰度图像
+    Mat img_gray;
+    cvtColor(res, img_gray, COLOR_BGR2GRAY);
+    medianBlur(img_gray, img_gray, 3);
+    if (config["debug_flag"].as<int>())
+    {
+        imshow("img_gray", img_gray);
+    }
+    // 使用霍夫圆变换检测圆形
+    vector<Vec3f> circles;
+    HoughCircles(img_gray, circles, HOUGH_GRADIENT_ALT, 1, 20, 50, 0.8, 30, 0);
+
+    Vec3f smallest_circle;
+
+    int min_radius = config["min_radius"].as<int>();
+
+    if (!circles.empty())
+    {
+        for (const auto &cnt: circles)
+        {
+            int radius = cnt[2];
+            if (radius > min_radius)
+            {
+                min_radius = radius;
+                smallest_circle = cnt;
+            }
+        }
+
+        // if (config["debug_flag"].as<int>())
+        // {
+        //     circle(img, Point(smallest_circle[0], smallest_circle[1]), smallest_circle[2], Scalar(0, 255, 0), 2);
+        // }
+
+        int x = smallest_circle[0];
+        int y = smallest_circle[1];
+
+        circle_data.center = Point(x, y);
+        circle_data.color = detected_color;
+        if (config["debug_flag"].as<int>())
+        {
+            circle(img, circle_data.center, 5, Scalar(0, 0, 0), -1);
+            imshow("Landmark_img", img);
+        }
+    } else
+    {
+        circle_data.center = Point(0, 0);
+
+        if (config["debug_flag"].as<int>())
+        {
+            imshow("Landmark_img", img);
+        }
+    }
+
+    if (config["debug_flag"].as<int>())
+    {
+        waitKey(1);
+    }
 }
 
-void Detector::Set_Object_Data()
+Point2d Detector::calculateAverage(const std::deque<Point> &points)
 {
+    if (points.empty()) {
+        return Point2d(0.0, 0.0);  // 如果队列为空，返回(0, 0)
+    }
+
+    double sum_x = 0.0;
+    double sum_y = 0.0;
+
+    for (const auto& point : points) {
+        sum_x += point.x;
+        sum_y += point.y;
+    }
+
+    double avg_x = sum_x / points.size();
+    double avg_y = sum_y / points.size();
+
+    return Point2d(avg_x, avg_y);
 }
+

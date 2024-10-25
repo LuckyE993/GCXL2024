@@ -236,18 +236,28 @@ void processMode(int mode, WzSerialportPlus &serialport,
                 serialThreadRunning = true;
                 serial_thread = std::thread(sendFramePeriodically, std::ref(serialport), sendLatecy);
             }
-
+            deque<Point> positions;
             while (!stop_previous_thread)
             {
                 Mat frame = detect_camera.getFrame();
                 if (!frame.empty())
                 {
-                    int color = config["Color"]["green"].as<int>();
-                    detector.Land_mark_Detect(frame, color, config);
-                    // cout << "x: " << detector.circle_data.center.x << "   y: " << detector.circle_data.center.y << endl;
+                    detector.Land_mark_Detect_v2(frame, config);
+                    if (detector.circle_data.center.x == 0 || detector.circle_data.center.y == 0)
+                    {
+                        positions.clear();
+                    } else
+                    {
+                        positions.push_back(detector.circle_data.center);
+                    }
+                    if (positions.size() > 10)
+                    {
+                        positions.pop_front();
+                    }
                 }
+                Point2d average_position = detector.calculateAverage(positions);
                 command.generateDetectFrame(sendFrame, config,
-                                            detector.circle_data.center.x, detector.circle_data.center.y,
+                                            average_position.x, average_position.y,
                                             detector.circle_data.color);
             }
             detect_camera.stopCapture();

@@ -37,14 +37,14 @@ Material_Thresholds:
   upper_red_1_contour: [ 24, 255, 255]
 
 Landmark_Thresholds:
-  lower_blue_circle: [90, 0, 0]
-  upper_blue_circle: [150, 255, 255]
-  lower_green_circle: [38, 0, 46]
-  upper_green_circle: [82, 255, 255]
-  lower_red_1_circle: [0, 0, 46]
-  upper_red_1_circle: [15, 255, 255]
-  lower_red_2_circle: [156, 0, 46]
-  upper_red_2_circle: [180, 255, 255]
+  lower_blue_circle: [81, 61, 41]
+  upper_blue_circle: [122, 255, 255]
+  lower_green_circle: [27, 34, 46]
+  upper_green_circle: [58, 255, 255]
+  lower_red_1_circle: [0, 126, 0]
+  upper_red_1_circle: [20, 255, 255]
+  lower_red_2_circle: [161, 42, 0]
+  upper_red_2_circle: [179, 255, 255]
 
 Color:
   blue: 0x03
@@ -53,5 +53,5 @@ Color:
 
 min_perimeter_threshold: 1000.0
 
-min_radius: 640
+min_radius: 60
 Vision_Mode: True

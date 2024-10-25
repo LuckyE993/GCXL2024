@@ -75,10 +75,9 @@ public:
     void Land_mark_Detect(Mat img, int color, const YAML::Node &config);
 
     void Material_detect_v2(const Mat &img, const YAML::Node &config);
+    void Land_mark_Detect_v2(const Mat &img, const YAML::Node &config);
 
-    void Edge_Detect(Mat &img);
-
-    void Set_Object_Data();
+    Point2d calculateAverage(const std::deque<Point>& points);
 
     // 成员变量
     Object_Data object_data;
