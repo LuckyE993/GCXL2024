@@ -150,6 +150,23 @@ void processMode(int mode, WzSerialportPlus &serialport,
             }
 
             qr_camera.stopCapture();
+            Mat qrimage = imread("../inc/picture.jpg");
+            int font = cv::FONT_HERSHEY_SIMPLEX;//字形
+            double font_scale = 4;//缩放
+            cv::Scalar font_color(0, 0, 0);  // 颜色
+            const std::array<uint8_t, 6>& bytes = qrCodeScanner.getBytes();
+            for (uint8_t byte : bytes) {
+            std::cout << static_cast<int>(byte);
+            }
+            std::string firstPart = std::to_string(bytes[0]) + std::to_string(bytes[1]) + std::to_string(bytes[2]);
+            std::string secondPart = std::to_string(bytes[3]) + std::to_string(bytes[4]) + std::to_string(bytes[5]);
+            std::string text = firstPart + "+" + secondPart;
+            int font_thickness = 4 ;
+            cv::Point text_position(50,340);  // 文本的起始位置
+            cv::putText(qrimage, text, text_position, font, font_scale, font_color, font_thickness, cv::LINE_AA);
+
+            imshow("image",qrimage);
+            waitKey(0); // 等待键盘事件
             if (stop_previous_thread)
             {
                 // destroyWindow("QR Camera Video");
