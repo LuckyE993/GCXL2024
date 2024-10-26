@@ -23,6 +23,9 @@ Camera qr_camera(config["cam_QRCode"].as<int>()); // 初始化摄像头
 Camera detect_camera(config["cam_Det"].as<int>()); // 初始化摄像头
 WzSerialportPlus serialport;
 QRcode qrCodeScanner;
+string QRPic_filename = "../inc/picture.jpg";
+Mat qrimage = imread(QRPic_filename);
+
 Command command;
 Detector detector;
 thread serial_thread;
@@ -71,16 +74,23 @@ int getMovementStatus(const Point &center, pair<int, int> range)
 // 发送帧的函数
 void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
 {
-    std::unique_lock<std::mutex> lock(mtx);
-    while (serialThreadRunning)
-    {
-        condition.wait_for(lock, std::chrono::milliseconds(interval_ms));
-        // 发送发送帧
-        serialport.send((char *) &sendFrame, sizeof(sendFrame));
-        serialport.printFrameInHex(sendFrame);
-    }
 
-    std::cout << "Serial thread stopping...\n";
+    try {
+        std::unique_lock<std::mutex> lock(mtx);
+        while (serialThreadRunning)
+        {
+            condition.wait_for(lock, std::chrono::milliseconds(interval_ms));
+            // 发送发送帧
+            serialport.send((char *) &sendFrame, sizeof(sendFrame));
+            serialport.printFrameInHex(sendFrame);
+        }
+
+        std::cout << "Serial thread stopping...\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Exception in sendFramePeriodically: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "Unknown exception in sendFramePeriodically." << std::endl;
+    }
 }
 
 void processMode(int mode, WzSerialportPlus &serialport,
@@ -119,7 +129,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
             cout << "[Serial] Received frame mode: 1 QRCode" << endl;
             qr_camera.startCapture(); // 开始捕获视频
             std::this_thread::sleep_for(std::chrono::milliseconds(150));
-
+            qrimage = imread(QRPic_filename);
             while (!stop_previous_thread)
             {
                 Mat frame = qr_camera.getFrame(); // 获取当前帧
@@ -150,28 +160,20 @@ void processMode(int mode, WzSerialportPlus &serialport,
             }
 
             qr_camera.stopCapture();
-            Mat qrimage = imread("../inc/picture.jpg");
-            int font = cv::FONT_HERSHEY_SIMPLEX;//字形
-            double font_scale = 4;//缩放
-            cv::Scalar font_color(0, 0, 0);  // 颜色
-            const std::array<uint8_t, 6>& bytes = qrCodeScanner.getBytes();
-            for (uint8_t byte : bytes) {
-            std::cout << static_cast<int>(byte);
-            }
+
+            int font = cv::FONT_HERSHEY_SIMPLEX; //字形
+            double font_scale = 4; //缩放
+            cv::Scalar font_color(0, 0, 0); // 颜色
+            int font_thickness = 4;
+
+            const std::array<uint8_t, 6> &bytes = qrCodeScanner.getBytes();
             std::string firstPart = std::to_string(bytes[0]) + std::to_string(bytes[1]) + std::to_string(bytes[2]);
             std::string secondPart = std::to_string(bytes[3]) + std::to_string(bytes[4]) + std::to_string(bytes[5]);
             std::string text = firstPart + "+" + secondPart;
-            int font_thickness = 4 ;
-            cv::Point text_position(50,340);  // 文本的起始位置
+
+            cv::Point text_position(50, 340); // 文本的起始位置
             cv::putText(qrimage, text, text_position, font, font_scale, font_color, font_thickness, cv::LINE_AA);
 
-            imshow("image",qrimage);
-            waitKey(0); // 等待键盘事件
-            if (stop_previous_thread)
-            {
-                // destroyWindow("QR Camera Video");
-                // break;
-            }
             // 启动新线程前，确保旧线程已停止
             if (serial_thread.joinable())
             {
@@ -202,6 +204,16 @@ void processMode(int mode, WzSerialportPlus &serialport,
             int stationary_threshold = 10; // 判断静止的阈值
 
             command.generateMaterialFrame(sendFrame, config);
+            // 启动新线程前，确保旧线程已停止
+            if (serial_thread.joinable())
+            {
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    serialThreadRunning = false;
+                }
+                condition.notify_all(); // 唤醒阻塞的线程
+                serial_thread.join(); // 等待线程结束
+            }
             // 启动新的发送线程
             {
                 std::lock_guard<std::mutex> lock(mtx);
@@ -246,7 +258,20 @@ void processMode(int mode, WzSerialportPlus &serialport,
             clog << "[Serial] Received frame mode: 3" << endl;
             // TODO 地标圆心检测的实现
             detect_camera.startCapture();
+
             command.generateDetectFrame(sendFrame, config);
+
+            // 启动新线程前，确保旧线程已停止
+            if (serial_thread.joinable())
+            {
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    serialThreadRunning = false;
+                }
+                condition.notify_all(); // 唤醒阻塞的线程
+                serial_thread.join(); // 等待线程结束
+            }
+
             // 启动新的发送线程
             {
                 std::lock_guard<std::mutex> lock(mtx);
@@ -314,11 +339,19 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
                 serial_thread.join(); // 等待线程结束
                 std::cout << "Thread has been stopped.\n";
             }
+            else
+            {
+                std::cout << "Serial Thread has not been started.\n";
+            }
             // 将处理模式的逻辑移动到新的线程中
             if (mode_thread.joinable())
             {
                 stop_previous_thread = true; // 通知前一个线程终止
-                mode_thread.detach(); // 使得线程可以独立运行，不用等待它结束
+                mode_thread.join(); // 使得线程可以独立运行，不用等待它结束
+            }
+            else
+            {
+                std::cout << "Mode Thread has not been started.\n";
             }
             // destroyWindow("QR Camera Video");
 
@@ -342,8 +375,20 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
     }
 }
 
+void show_qrcode(void)
+{
+    while(true)
+    {
+        imshow("QRimage",qrimage);
+        waitKey(1);
+        this_thread::sleep_for(std::chrono::milliseconds(150));
+    }
+}
+
 int main()
 {
+    namedWindow("QRimage",WINDOW_AUTOSIZE);
+    imshow("QRimage",qrimage);
     serialport.setReceiveCalback([&](char *data, int length)
     {
         serialCallback(data, length, serialport, qrCodeScanner, command, qr_camera,
@@ -355,9 +400,13 @@ int main()
 
     cout << "Init Success! " << endl;
 
+    auto qrthread = std::thread(show_qrcode);
+    qrthread.detach();
+
     while (true)
     {
         getchar();
+
         serialport.close();
         break;
     }
