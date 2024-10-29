@@ -75,9 +75,14 @@ public:
     void Land_mark_Detect(Mat img, int color, const YAML::Node &config);
 
     void Material_detect_v2(const Mat &img, const YAML::Node &config);
+
     void Land_mark_Detect_v2(const Mat &img, const YAML::Node &config);
 
-    Point2d calculateAverage(const std::deque<Point>& points);
+    Point2d calculateAverage(const std::deque<Point> &points);
+
+    bool checkIfStationary(const std::deque<int> &x_positions, int threshold, int size);
+
+    int getMovementStatus(const Point &center, pair<int, int> range);
 
     // 成员变量
     Object_Data object_data;

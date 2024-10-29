@@ -11,10 +11,8 @@
 #include <condition_variable>
 #include <Detector.h>
 
-
 using namespace cv;
 using namespace std;
-
 
 const string config_dir = "../config.yaml";
 
@@ -40,42 +38,11 @@ Frame receiveFrame = serialport.initReceiveFrame(config);
 
 int sendLatecy = config["send_latecy_ms"].as<int>();
 
-// 函数判断是否连续10次静止
-bool checkIfStationary(const std::deque<int> &x_positions, int threshold, int size)
-{
-    if (x_positions.size() < size)
-    {
-        return false; // 如果记录的点数不足10个，返回false
-    }
-
-    int min_x = *min_element(x_positions.begin(), x_positions.end());
-    int max_x = *max_element(x_positions.begin(), x_positions.end());
-
-    // 如果最大值和最小值的差值小于阈值，认为物体静止
-    return (max_x - min_x) <= threshold;
-}
-
-// 函数判断物体运动状态
-int getMovementStatus(const Point &center, pair<int, int> range)
-{
-    if (center.x > range.first && center.x < range.second)
-    {
-        return 2;
-    } else if (center.x < range.first)
-    {
-        return 3;
-    } else if (center.x > range.second)
-    {
-        return 1;
-    }
-    return 0;
-}
-
 // 发送帧的函数
 void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
 {
-
-    try {
+    try
+    {
         std::unique_lock<std::mutex> lock(mtx);
         while (serialThreadRunning)
         {
@@ -86,9 +53,11 @@ void sendFramePeriodically(WzSerialportPlus &serialport, int interval_ms)
         }
 
         std::cout << "Serial thread stopping...\n";
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e)
+    {
         std::cerr << "Exception in sendFramePeriodically: " << e.what() << std::endl;
-    } catch (...) {
+    } catch (...)
+    {
         std::cerr << "Unknown exception in sendFramePeriodically." << std::endl;
     }
 }
@@ -161,18 +130,11 @@ void processMode(int mode, WzSerialportPlus &serialport,
 
             qr_camera.stopCapture();
 
-            int font = cv::FONT_HERSHEY_SIMPLEX; //字形
-            double font_scale = 4; //缩放
-            cv::Scalar font_color(0, 0, 0); // 颜色
-            int font_thickness = 4;
+            QRcode::generateQRImage(qrimage, qrCodeScanner.getBytes(), Scalar(0, 0, 0),
+                                    cv::FONT_HERSHEY_SIMPLEX, 4.0, 4);
+            std::string filename = QRcode::saveQRImage(qrimage);
 
-            const std::array<uint8_t, 6> &bytes = qrCodeScanner.getBytes();
-            std::string firstPart = std::to_string(bytes[0]) + std::to_string(bytes[1]) + std::to_string(bytes[2]);
-            std::string secondPart = std::to_string(bytes[3]) + std::to_string(bytes[4]) + std::to_string(bytes[5]);
-            std::string text = firstPart + "+" + secondPart;
-
-            cv::Point text_position(50, 340); // 文本的起始位置
-            cv::putText(qrimage, text, text_position, font, font_scale, font_color, font_thickness, cv::LINE_AA);
+            qrCodeScanner.startOrRestartShowQRInfo(filename);
 
             // 启动新线程前，确保旧线程已停止
             if (serial_thread.joinable())
@@ -233,9 +195,8 @@ void processMode(int mode, WzSerialportPlus &serialport,
                         x_positions.pop_front(); // 保持队列大小为10
                     }
 
-                    if (checkIfStationary(x_positions, stationary_threshold, 50)) // 静止
+                    if (detector.checkIfStationary(x_positions, stationary_threshold, 50)) // 静止
                     {
-                        // cout << "Object is stationary based on the last 10 positions" << endl;
                         move_status = 2;
                     } else
                     {
@@ -243,7 +204,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
                     }
 
                     // 判断当前中心点的位置范围
-                    move_range = getMovementStatus(detector.object_data.center, make_pair(300, 340));
+                    move_range = detector.getMovementStatus(detector.object_data.center, make_pair(300, 340));
                     command.generateMaterialFrame(sendFrame,
                                                   config, detector.object_data.center.x, detector.object_data.center.y,
                                                   move_status, move_range, detector.object_data.color);
@@ -338,8 +299,7 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
                 condition.notify_all(); // 唤醒阻塞的线程
                 serial_thread.join(); // 等待线程结束
                 std::cout << "Thread has been stopped.\n";
-            }
-            else
+            } else
             {
                 std::cout << "Serial Thread has not been started.\n";
             }
@@ -348,8 +308,7 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
             {
                 stop_previous_thread = true; // 通知前一个线程终止
                 mode_thread.join(); // 使得线程可以独立运行，不用等待它结束
-            }
-            else
+            } else
             {
                 std::cout << "Mode Thread has not been started.\n";
             }
@@ -375,20 +334,10 @@ void serialCallback(char *data, int length, WzSerialportPlus &serialport, QRcode
     }
 }
 
-void show_qrcode(void)
-{
-    while(true)
-    {
-        imshow("QRimage",qrimage);
-        waitKey(1);
-        this_thread::sleep_for(std::chrono::milliseconds(150));
-    }
-}
 
 int main()
 {
-    namedWindow("QRimage",WINDOW_AUTOSIZE);
-    imshow("QRimage",qrimage);
+
     serialport.setReceiveCalback([&](char *data, int length)
     {
         serialCallback(data, length, serialport, qrCodeScanner, command, qr_camera,
@@ -397,16 +346,11 @@ int main()
 
     serialport.initSerialFromConfig(serialport, config_dir);
 
-
     cout << "Init Success! " << endl;
-
-    auto qrthread = std::thread(show_qrcode);
-    qrthread.detach();
 
     while (true)
     {
         getchar();
-
         serialport.close();
         break;
     }

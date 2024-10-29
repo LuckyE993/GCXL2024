@@ -3,6 +3,7 @@
 //
 
 #include <QRcode.h>
+#include <csignal>
 
 #include "Command.h"
 using namespace std;
@@ -86,4 +87,81 @@ bool QRcode::parseQRCodeData(const std::string &qrData)
 const std::array<uint8_t, 6> &QRcode::getBytes() const
 {
     return qrDataBytes;
+}
+
+std::string QRcode::getCurrentTimeString()
+{
+    // 获取当前时间点
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
+
+    // 格式化时间为字符串
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_time_t), "%Y%m%d_%H%M%S");
+    return ss.str();
+}
+
+void QRcode::startOrRestartShowQRInfo(const std::string &filename)
+{
+    // 检查 show_QR_info 是否已经启动
+    if (showQRInfoPID > 0)
+    {
+        // 进程已经启动，尝试关闭
+        if (kill(showQRInfoPID, SIGTERM) == 0)
+        {
+            std::cout << "Terminated existing show_QR_info process with PID: " << showQRInfoPID << std::endl;
+        } else
+        {
+            std::cerr << "Failed to terminate show_QR_info process with PID: " << showQRInfoPID << std::endl;
+        }
+        showQRInfoPID = -1; // 清空记录的PID
+    }
+
+    // 使用 fork 和 execl 启动新的进程运行 show_QR_info 程序
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        std::cerr << "Fork failed!" << std::endl;
+    } else if (pid == 0)
+    {
+        // 子进程
+        execl("./show_QR_info", "show_QR_info", filename.c_str(), nullptr);
+        std::cerr << "Failed to execute show_QR_info" << std::endl;
+        exit(1); // 如果 exec 失败，退出子进程
+    } else
+    {
+        // 父进程
+        // 记录新启动的 show_QR_info 进程的 PID
+        showQRInfoPID = pid;
+        std::cout << "Started show_QR_info process with PID: " << showQRInfoPID << std::endl;
+    }
+}
+
+void QRcode::generateQRImage(cv::Mat &qrimage, const std::array<uint8_t, 6> &bytes, const cv::Scalar &font_color,
+                             int font, double font_scale, int font_thickness)
+{
+    // 构造文本
+    std::string firstPart = std::to_string(bytes[0]) + std::to_string(bytes[1]) + std::to_string(bytes[2]);
+    std::string secondPart = std::to_string(bytes[3]) + std::to_string(bytes[4]) + std::to_string(bytes[5]);
+    std::string text = firstPart + "+" + secondPart;
+
+    // 设置文本位置
+    Point text_position(50, 340);
+    putText(qrimage, text, text_position, font, font_scale, font_color, font_thickness, LINE_AA);
+
+
+}
+
+std::string QRcode::saveQRImage(const cv::Mat &image)
+{
+    std::string currentTime = getCurrentTimeString();
+    std::string filename = currentTime + ".jpg";
+    if (imwrite(filename, image))
+    {
+        std::cout << "Image saved successfully: " << filename << std::endl;
+    } else
+    {
+        std::cerr << "Failed to save image: " << filename << std::endl;
+    }
+    return filename;
 }

@@ -448,14 +448,16 @@ void Detector::Land_mark_Detect_v2(const Mat &img, const YAML::Node &config)
 
 Point2d Detector::calculateAverage(const std::deque<Point> &points)
 {
-    if (points.empty()) {
-        return Point2d(0.0, 0.0);  // 如果队列为空，返回(0, 0)
+    if (points.empty())
+    {
+        return Point2d(0.0, 0.0); // 如果队列为空，返回(0, 0)
     }
 
     double sum_x = 0.0;
     double sum_y = 0.0;
 
-    for (const auto& point : points) {
+    for (const auto &point: points)
+    {
         sum_x += point.x;
         sum_y += point.y;
     }
@@ -466,3 +468,31 @@ Point2d Detector::calculateAverage(const std::deque<Point> &points)
     return Point2d(avg_x, avg_y);
 }
 
+bool Detector::checkIfStationary(const std::deque<int> &x_positions, int threshold, int size)
+{
+    if (x_positions.size() < size)
+    {
+        return false; // 如果记录的点数不足10个，返回false
+    }
+
+    int min_x = *min_element(x_positions.begin(), x_positions.end());
+    int max_x = *max_element(x_positions.begin(), x_positions.end());
+
+    // 如果最大值和最小值的差值小于阈值，认为物体静止
+    return (max_x - min_x) <= threshold;
+}
+
+int Detector::getMovementStatus(const Point &center, pair<int, int> range)
+{
+    if (center.x > range.first && center.x < range.second)
+    {
+        return 2;
+    } else if (center.x < range.first)
+    {
+        return 3;
+    } else if (center.x > range.second)
+    {
+        return 1;
+    }
+    return 0;
+}
