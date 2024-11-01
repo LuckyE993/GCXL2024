@@ -146,7 +146,7 @@ void QRcode::generateQRImage(cv::Mat &qrimage, const std::array<uint8_t, 6> &byt
     std::string text = firstPart + "+" + secondPart;
 
     // 设置文本位置
-    Point text_position(50, 340);
+    Point text_position(50, 50);
     putText(qrimage, text, text_position, font, font_scale, font_color, font_thickness, LINE_AA);
 
 
