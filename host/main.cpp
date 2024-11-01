@@ -131,7 +131,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
             qr_camera.stopCapture();
 
             QRcode::generateQRImage(qrimage, qrCodeScanner.getBytes(), Scalar(0, 0, 0),
-                                    cv::FONT_HERSHEY_SIMPLEX, 4.0, 4);
+                                    cv::FONT_HERSHEY_SIMPLEX, 3.0, 4);
             std::string filename = QRcode::saveQRImage(qrimage);
 
             qrCodeScanner.startOrRestartShowQRInfo(filename);
