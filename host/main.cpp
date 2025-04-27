@@ -108,8 +108,8 @@ void processMode(int mode, WzSerialportPlus &serialport,
                     cerr << "无法获取帧!" << endl;
                     continue;
                 }
-                imshow("QR Camera Video", frame);
-                waitKey(1); // 等待键盘事件
+                 imshow("QR Camera Video", frame);
+                 waitKey(1); // 等待键盘事件
                 if (qrCodeScanner.processQRCode(frame))
                 {
                     const array<uint8_t, 6> &bytes = qrCodeScanner.getBytes();
@@ -163,7 +163,7 @@ void processMode(int mode, WzSerialportPlus &serialport,
             int move_status = 1; // 存储当前运动状态
             int move_range = 0;
             std::deque<int> x_positions; // 存储最近10个x坐标
-            int stationary_threshold = 10; // 判断静止的阈值
+            int stationary_threshold = 5; // 判断静止的阈值
 
             command.generateMaterialFrame(sendFrame, config);
             // 启动新线程前，确保旧线程已停止

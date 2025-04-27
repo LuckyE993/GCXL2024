@@ -37,10 +37,21 @@ Material_Thresholds:
   upper_red_1_contour: [ 24, 255, 255]
 
 Landmark_Thresholds:
-  lower_blue_circle: [81, 61, 41]
-  upper_blue_circle: [122, 255, 255]
-  lower_green_circle: [27, 34, 46]
-  upper_green_circle: [58, 255, 255]
+# old:below ---------------------------------------------------------
+
+#  lower_blue_circle: [81, 61, 41]
+#  upper_blue_circle: [122, 255, 255]
+#  lower_green_circle: [27, 34, 46]
+#  upper_green_circle: [58, 255, 255]
+
+# new:below ---------------------------------------------------------
+  
+  lower_blue_circle: [ 81, 61, 0 ]
+  upper_blue_circle: [ 144, 255, 255 ]
+  lower_green_circle: [ 33, 43, 75 ]
+  upper_green_circle: [ 75, 255, 255 ]
+
+# new:upper ------------------------------------------
   lower_red_1_circle: [0, 126, 0]
   upper_red_1_circle: [20, 255, 255]
   lower_red_2_circle: [161, 42, 0]
